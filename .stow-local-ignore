@@ -1,0 +1,32 @@
+# prun stow ignore rules
+# Excludes documentation and development files
+
+# Documentation
+^/README.*
+^/LICENSE.*
+^/CHANGELOG.*
+^/TODO.*
+^/CONTRIBUTING.*
+\.md$
+
+# Examples and templates (copy manually, don't symlink)
+\.example$
+\.sample$
+^/.+\.template$
+
+# Development files
+^/\.editorconfig
+^/\.prettierrc
+^/tests?/
+^/examples?/
+^/docs?/
+
+# Backup files
+\.bak$
+\.backup$
+~$
+
+# Temporary files
+\.tmp$
+\.temp$
+^/tmp/

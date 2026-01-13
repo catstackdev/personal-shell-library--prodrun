@@ -1,0 +1,473 @@
+#!/usr/bin/env zsh
+# prodrun - Production runner CLI
+
+set -euo pipefail
+
+readonly PRUN_VERSION="1.0.0"
+readonly PRUN_CONFIG_DIR="$HOME/.config/prodrun"
+
+# Load global config
+source "$PRUN_CONFIG_DIR/config.zsh"
+
+# Load libraries
+source "$PRUN_CONFIG_DIR/lib/logger.zsh"
+source "$PRUN_CONFIG_DIR/lib/logger-enhanced.zsh"
+source "$PRUN_CONFIG_DIR/lib/detection.zsh"
+source "$PRUN_CONFIG_DIR/lib/core.zsh"
+source "$PRUN_CONFIG_DIR/lib/utils.zsh"
+source "$PRUN_CONFIG_DIR/lib/realworld.zsh"
+source "$PRUN_CONFIG_DIR/lib/angular.zsh"
+source "$PRUN_CONFIG_DIR/lib/failure-aware.zsh"
+
+# Initialize
+init_prun
+
+# Load project config if exists
+load_project_config
+
+# Cleanup on exit
+cleanup() {
+    log_debug "Cleanup triggered"
+}
+trap cleanup EXIT INT TERM
+
+# Usage
+usage() {
+    cat << EOF
+prodrun v$PRUN_VERSION - Web Production Runner
+Auto-detects package managers, project types, and provides real-world utilities
+
+USAGE:
+    prodrun <command> [options]
+
+BASIC COMMANDS:
+    dev, start, build, test, lint    Run npm scripts
+    daemon <start|stop|restart>      Run as background daemon
+    logs [app|error|all] [lines]     View logs (default: app, 50 lines)
+    monitor                          Monitor logs in real-time
+    health                           Run health check
+    status                           Show process status
+    init                             Create .prunrc in current project
+    config                           Show current configuration
+    version                          Show version
+
+FAILURE-AWARE EXECUTION:
+    run <command> [--retry=N]        Run command with failure awareness
+    validate <command>               Validate command before running
+    retry <command> [attempts]       Retry failed command (default: 3)
+
+ANGULAR COMMANDS: (Angular CLI wrapper)
+    ng <command>                     Run any Angular CLI command
+    ng:serve [app] [port]            Serve Angular app (default: 4200)
+    ng:build [app] [config]          Build Angular app (default: production)
+    ng:test [app] [coverage]         Run tests (use --coverage for coverage)
+    ng:apps                          List all Angular apps in workspace
+    ng:generate <type> <name>        Generate component/service/etc
+    ng:lint [app]                    Lint Angular project
+    ng:update                        Check for Angular updates
+    ng:info                          Show Angular version info
+
+PROJECT INFO:
+    info                             Show comprehensive project info
+    detect                           Detect project type, PM, workspace
+
+GIT UTILITIES:
+    git:status                       Show git status summary
+
+ENVIRONMENT:
+    env:check                        Check for .env files
+    env:copy                         Copy .env.example to .env
+
+PORT MANAGEMENT:
+    port:check [port]                Check if port is in use (default: 3000)
+    port:kill [port]                 Kill process on port (default: 3000)
+    port:info [port]                 Show process info on port
+
+DOCKER:
+    docker:status                    Check Docker status
+    docker:up                        Start Docker containers
+    docker:down                      Stop Docker containers
+    docker:logs                      View Docker logs
+
+DEPENDENCIES:
+    deps:outdated                    Check for outdated packages
+    deps:update                      Update dependencies
+    deps:audit                       Run security audit
+
+CLEANUP:
+    clean                            Remove node_modules, lock files, builds
+    fresh                            Clean and reinstall dependencies
+
+OPTIONS:
+    -h, --help                       Show this help
+    -v, --verbose                    Enable debug logging
+    -q, --quiet                      Minimal output (errors only)
+
+EXAMPLES:
+    prodrun dev                         Start dev server (auto-detects PM)
+    prodrun ng:serve my-app 4300        Serve Angular app on port 4300
+    prodrun port:kill 3000              Kill process on port 3000
+    prodrun info                        Show full project info
+    prodrun docker:up                   Start Docker services
+    prodrun fresh                       Clean install
+    prodrun run npm test --retry=5      Run tests with failure awareness
+    prodrun validate npm build          Check if build command is valid
+    prodrun retry "npm install" 3       Retry install command 3 times
+
+FEATURES:
+    ✓ Auto-detects package manager (pnpm/npm/yarn/bun) from lock files
+    ✓ Detects project type (Angular/React/Next/Nest/Vue/etc)
+    ✓ Supports monorepos (Nx/Turbo/Lerna/workspaces)
+    ✓ Failure-aware execution with smart retry and error recovery
+    ✓ Intelligent error detection and suggested fixes
+    ✓ Git integration
+    ✓ Docker support
+    ✓ Port management
+    ✓ Environment file handling
+
+CONFIGURATION:
+    Global:  ~/.config/web-production/config.zsh
+    Project: .prunrc (optional)
+
+LOGS:
+    Location: $PRUN_LOG_DIR
+    Retention: $PRUN_LOG_RETENTION_DAYS days
+
+For more info: https://github.com/yourusername/web-production
+EOF
+}
+
+# Show config
+show_config() {
+    cat << EOF
+Current Configuration:
+======================
+Package Manager: $PRUN_PACKAGE_MANAGER
+Log Directory: $PRUN_LOG_DIR
+Log Level: $PRUN_LOG_LEVEL
+Auto Install: $PRUN_AUTO_INSTALL
+Log Retention: $PRUN_LOG_RETENTION_DAYS days
+Color Output: $PRUN_COLOR_OUTPUT
+Project Type: $(detect_project_type)
+
+Config Files:
+  Global: ~/.config/prun/config.zsh
+  Project: .prunrc $([ -f ".prunrc" ] && echo "(found)" || echo "(not found)")
+
+Custom Commands:
+EOF
+    for key val in ${(kv)PRUN_COMMANDS}; do
+        echo "  $key -> $val"
+    done
+}
+
+# Main command handler
+main() {
+    local command="${1:-}"
+    
+    # Parse flags
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            -v|--verbose)
+                PRUN_LOG_LEVEL="DEBUG"
+                shift
+                ;;
+            -q|--quiet)
+                PRUN_LOG_LEVEL="ERROR"
+                shift
+                ;;
+            --version|version)
+                echo "prodrun v$PRUN_VERSION"
+                exit 0
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    
+    command="${1:-}"
+    
+    [[ -z "$command" ]] && { usage; exit 1; }
+    
+    case "$command" in
+        # Run commands
+        dev|start|build|test|lint)
+            preflight_checks || exit 1
+            run_command "$command"
+            ;;
+        
+        # Daemon management
+        daemon)
+            case "${2:-}" in
+                start)
+                    preflight_checks || exit 1
+                    start_daemon "${3:-start}"
+                    ;;
+                stop)
+                    stop_daemon
+                    ;;
+                restart)
+                    stop_daemon
+                    sleep 2
+                    preflight_checks || exit 1
+                    start_daemon "${3:-start}"
+                    ;;
+                *)
+                    log_error "Usage: prun daemon {start|stop|restart}"
+                    exit 1
+                    ;;
+            esac
+            ;;
+        
+        # Logging - Basic
+        logs)
+            view_logs "${2:-app}" "${3:-50}"
+            ;;
+
+        monitor)
+            monitor_logs
+            ;;
+
+        # Logging - Enhanced
+        log:filter)
+            log_filter "${2:-level}" "${3:-INFO}" "${4:-$PRUN_LOG_FILE}"
+            ;;
+
+        log:stats)
+            log_stats "${2:-$PRUN_LOG_FILE}"
+            ;;
+
+        log:viewer)
+            log_viewer "${2:-$PRUN_LOG_FILE}"
+            ;;
+
+        log:follow)
+            log_follow "${2:-}" "${3:-$PRUN_LOG_FILE}"
+            ;;
+
+        log:diff)
+            log_diff "${2}" "${3}"
+            ;;
+
+        log:rotate)
+            log_rotate "${2:-10M}" "${3:-30}"
+            ;;
+
+        # Performance tracking
+        perf:start)
+            timer_start "${2:-default}"
+            ;;
+
+        perf:end)
+            timer_end "${2:-default}"
+            ;;
+
+        # Metrics
+        metrics)
+            metrics_dashboard
+            ;;
+
+        metrics:track)
+            track_build_metric "${2}" "${3}"
+            ;;
+
+        # Status and health
+        status)
+            get_status
+            ;;
+
+        health)
+            health_check
+            ;;
+
+        # Failure-aware execution
+        run)
+            shift
+            local command="$1"
+            shift
+            local retry_count="${PRUN_MAX_RETRIES:-3}"
+
+            # Parse --retry flag
+            for arg in "$@"; do
+                if [[ "$arg" =~ ^--retry=([0-9]+)$ ]]; then
+                    retry_count="${BASH_REMATCH[1]}"
+                fi
+            done
+
+            execute "$command" "$@"
+            ;;
+
+        validate)
+            shift
+            validate_command "$@"
+            ;;
+
+        retry)
+            shift
+            local command="$1"
+            shift
+            local max_retries="${1:-3}"
+            retry_command "$command" "$max_retries"
+            ;;
+
+        # Configuration
+        init)
+            init_project
+            ;;
+
+        config)
+            show_config
+            ;;
+        
+        # Angular commands
+        ng)
+            shift
+            ng_run "$@"
+            ;;
+
+        ng:serve)
+            ng_serve "${2:-}" "${3:-4200}"
+            ;;
+
+        ng:build)
+            ng_build "${2:-}" "${3:-production}"
+            ;;
+
+        ng:test)
+            ng_test "${2:-}" "${3:-false}"
+            ;;
+
+        ng:apps)
+            ng_list_apps
+            ;;
+
+        ng:generate)
+            ng_generate "${2:-component}" "${3:-}"
+            ;;
+
+        ng:lint)
+            ng_lint "${2:-}"
+            ;;
+
+        ng:update)
+            ng_update_check
+            ;;
+
+        ng:info)
+            ng_info
+            ;;
+
+        # Project info and utilities
+        info)
+            project_info
+            ;;
+
+        detect)
+            echo "Project Type: $(detect_project_type)"
+            echo "Package Manager: $(detect_package_manager)"
+            echo "Workspace: $(detect_workspace_type)"
+            ;;
+
+        # Git utilities
+        git:status)
+            git_status_summary
+            ;;
+
+        # Environment management
+        env:check)
+            env_check
+            ;;
+
+        env:copy)
+            env_copy_example
+            ;;
+
+        # Port management
+        port:check)
+            port_check "${2:-3000}"
+            ;;
+
+        port:kill)
+            port_kill "${2:-3000}"
+            ;;
+
+        port:info)
+            port_info "${2:-3000}"
+            ;;
+
+        # Docker management
+        docker:status)
+            docker_status
+            ;;
+
+        docker:up)
+            docker_up
+            ;;
+
+        docker:down)
+            docker_down
+            ;;
+
+        docker:logs)
+            docker_logs
+            ;;
+
+        # Dependency management
+        deps:outdated)
+            deps_outdated
+            ;;
+
+        deps:update)
+            deps_update
+            ;;
+
+        deps:audit)
+            deps_audit
+            ;;
+
+        # Cleanup
+        clean)
+            clean_all
+            ;;
+
+        fresh)
+            fresh_install
+            ;;
+
+        # Shortcuts
+        shortcuts)
+            if [[ -f "$PRUN_CONFIG_DIR/lib/shortcuts.zsh" ]]; then
+                cat "$PRUN_CONFIG_DIR/lib/shortcuts.zsh"
+            else
+                log_error "Shortcuts file not found"
+            fi
+            ;;
+
+        aliases)
+            echo "Add to your ~/.zshrc:"
+            echo ""
+            echo "source ~/.config/web-production/lib/shortcuts.zsh"
+            echo ""
+            echo "Then use shortcuts like: wpdev, wpbuild, wptest, etc."
+            echo "Run 'prodrun shortcuts' to see the file"
+            ;;
+
+        # Help
+        help|--help|-h)
+            usage
+            ;;
+
+        *)
+            log_error "Unknown command: $command"
+            echo "Run 'prodrun --help' for usage"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

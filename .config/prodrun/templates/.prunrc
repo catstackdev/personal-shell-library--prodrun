@@ -1,0 +1,23 @@
+# Project-specific prun configuration
+# This file overrides global settings in ~/.config/prun/config.zsh
+
+# Uncomment and modify as needed:
+
+# PRUN_LOG_DIR="./logs"
+# PRUN_LOG_LEVEL="DEBUG"
+# PRUN_PACKAGE_MANAGER="pnpm"
+# PRUN_AUTO_INSTALL="true"
+
+# Custom commands for this project
+# typeset -A PRUN_COMMANDS
+# PRUN_COMMANDS[dev]="dev:custom"
+# PRUN_COMMANDS[start]="start:prod"
+# PRUN_COMMANDS[build]="build:production"
+
+# Notifications
+# PRUN_NOTIFY_ON_ERROR="true"
+# PRUN_NOTIFY_ON_SUCCESS="true"
+
+# Project-specific environment variables
+# export DATABASE_URL="postgresql://localhost/mydb"
+# export API_PORT="3000"
