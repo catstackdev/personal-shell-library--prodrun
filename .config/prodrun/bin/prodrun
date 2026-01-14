@@ -18,6 +18,7 @@ source "$PRUN_CONFIG_DIR/lib/utils.zsh"
 source "$PRUN_CONFIG_DIR/lib/realworld.zsh"
 source "$PRUN_CONFIG_DIR/lib/angular.zsh"
 source "$PRUN_CONFIG_DIR/lib/failure-aware.zsh"
+source "$PRUN_CONFIG_DIR/lib/completion-installer.zsh"
 
 # Initialize
 init_prun
@@ -98,6 +99,11 @@ CLEANUP:
     clean                            Remove node_modules, lock files, builds
     fresh                            Clean and reinstall dependencies
 
+COMPLETION:
+    completion:install               Install shell completion
+    completion:uninstall             Remove shell completion
+    completion:update                Update shell completion
+
 OPTIONS:
     -h, --help                       Show this help
     -v, --verbose                    Enable debug logging
@@ -113,8 +119,17 @@ EXAMPLES:
     prodrun run npm test --retry=5      Run tests with failure awareness
     prodrun validate npm build          Check if build command is valid
     prodrun retry "npm install" 3       Retry install command 3 times
+    prodrun completion:install          Install shell completion (recommended!)
+
+SHELL COMPLETION:
+    After installing completion, use TAB to autocomplete:
+      prodrun <TAB>              - Show all commands
+      prodrun ng:<TAB>           - Show Angular commands
+      prodrun port:<TAB>         - Show port commands
+      prodrun port:kill <TAB>    - Show common ports
 
 FEATURES:
+    ✓ Shell completion for all commands (zsh)
     ✓ Auto-detects package manager (pnpm/npm/yarn/bun) from lock files
     ✓ Detects project type (Angular/React/Next/Nest/Vue/etc)
     ✓ Supports monorepos (Nx/Turbo/Lerna/workspaces)
@@ -455,6 +470,19 @@ main() {
             echo ""
             echo "Then use shortcuts like: wpdev, wpbuild, wptest, etc."
             echo "Run 'prodrun shortcuts' to see the file"
+            ;;
+
+        # Completion commands
+        completion:install)
+            install_zsh_completion
+            ;;
+
+        completion:uninstall)
+            uninstall_zsh_completion
+            ;;
+
+        completion:update)
+            reinstall_zsh_completion
             ;;
 
         # Help

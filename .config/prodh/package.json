@@ -1,0 +1,67 @@
+{
+	"name": "prodh",
+	"version": "0.0.0",
+	"license": "MIT",
+	"bin": "dist/cli.js",
+	"type": "module",
+	"engines": {
+		"node": ">=16"
+	},
+	"scripts": {
+		"dev": "tsx --watch source/cli.tsx",
+		"build": "tsc",
+		"start": "node dist/cli.js",
+		"test": "xo && ava"
+	},
+	"files": [
+		"dist"
+	],
+	"dependencies": {
+		"execa": "^9.6.1",
+		"figlet": "^1.9.4",
+		"ink": "^6.6.0",
+		"ink-big-text": "^2.0.0",
+		"ink-box": "^2.0.0",
+		"ink-gradient": "^3.0.0",
+		"ink-select-input": "^6.2.0",
+		"ink-spinner": "^5.0.0",
+		"ink-text-input": "^6.0.0",
+		"meow": "^11.0.0",
+		"react": "^19.2.3",
+		"zx": "^8.8.5"
+	},
+	"devDependencies": {
+		"@sindresorhus/tsconfig": "^3.0.1",
+		"@types/node": "^25.0.8",
+		"@types/react": "^19.2.8",
+		"@vdemedes/prettier-config": "^2.0.1",
+		"ava": "^5.2.0",
+		"chalk": "^5.2.0",
+		"eslint-config-xo-react": "^0.27.0",
+		"eslint-plugin-react": "^7.32.2",
+		"eslint-plugin-react-hooks": "^4.6.0",
+		"ink-testing-library": "^3.0.0",
+		"prettier": "^2.8.7",
+		"ts-node": "^10.9.1",
+		"tsx": "^4.21.0",
+		"typescript": "^5.0.3",
+		"xo": "^0.53.1"
+	},
+	"ava": {
+		"extensions": {
+			"ts": "module",
+			"tsx": "module"
+		},
+		"nodeArguments": [
+			"--loader=ts-node/esm"
+		]
+	},
+	"xo": {
+		"extends": "xo-react",
+		"prettier": true,
+		"rules": {
+			"react/prop-types": "off"
+		}
+	},
+	"prettier": "@vdemedes/prettier-config"
+}

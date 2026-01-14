@@ -1,0 +1,54 @@
+# Logs
+logs/
+*.log
+*.log.*
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.vim/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.cache
+
+# Test files
+test-*.sh
+check-*.sh
+fix-*.sh
+setup-*.sh
+verify-*.sh
+force-*.sh
+
+# Development files
+.claude
+.aider*
+*.example.bak
+
+# Project specific
+.prunrc.local
+.env.local
+
+# Lock files (keep for documentation)
+# node_modules should not be here since this is a shell tool
+
+# PID files from daemon mode
+*.pid
+
+# Metrics and tracking
+metrics/
+.metrics/

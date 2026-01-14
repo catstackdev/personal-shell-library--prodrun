@@ -1,0 +1,308 @@
+#compdef prodrun
+
+# Zsh completion for prodrun
+# Save to: ~/.config/prodrun/completions/_prodrun
+# Or: /usr/local/share/zsh/site-functions/_prodrun
+
+_prodrun() {
+  local -a commands
+  local context state state_descr line
+  typeset -A opt_args
+
+  # Main commands
+  local -a main_commands=(
+    'dev:Start development server'
+    'start:Start production server'
+    'build:Build project'
+    'test:Run tests'
+    'lint:Lint code'
+  )
+
+  # Daemon commands
+  local -a daemon_commands=(
+    'daemon\:start:Start as background daemon'
+    'daemon\:stop:Stop daemon'
+    'daemon\:restart:Restart daemon'
+  )
+
+  # Logging commands
+  local -a log_commands=(
+    'logs:View logs'
+    'monitor:Monitor logs in real-time'
+    'log\:filter:Filter logs by type/level'
+    'log\:stats:Show log statistics'
+    'log\:viewer:Interactive log viewer'
+    'log\:follow:Follow logs in real-time'
+    'log\:diff:Compare two log files'
+    'log\:rotate:Rotate log files'
+  )
+
+  # Performance commands
+  local -a perf_commands=(
+    'perf\:start:Start performance timer'
+    'perf\:end:End performance timer'
+    'metrics:Show metrics dashboard'
+    'metrics\:track:Track build metric'
+  )
+
+  # Status commands
+  local -a status_commands=(
+    'status:Show process status'
+    'health:Run health check'
+  )
+
+  # Configuration commands
+  local -a config_commands=(
+    'init:Create .prunrc in project'
+    'config:Show current configuration'
+  )
+
+  # Angular commands
+  local -a angular_commands=(
+    'ng:Run Angular CLI command'
+    'ng\:serve:Serve Angular app'
+    'ng\:build:Build Angular app'
+    'ng\:test:Run Angular tests'
+    'ng\:apps:List Angular apps'
+    'ng\:generate:Generate Angular component/service'
+    'ng\:lint:Lint Angular project'
+    'ng\:update:Check for Angular updates'
+    'ng\:info:Show Angular version info'
+  )
+
+  # Project info commands
+  local -a info_commands=(
+    'info:Show comprehensive project info'
+    'detect:Detect project type and package manager'
+  )
+
+  # Git commands
+  local -a git_commands=(
+    'git\:status:Show git status summary'
+  )
+
+  # Environment commands
+  local -a env_commands=(
+    'env\:check:Check for .env files'
+    'env\:copy:Copy .env.example to .env'
+  )
+
+  # Port commands
+  local -a port_commands=(
+    'port\:check:Check if port is in use'
+    'port\:kill:Kill process on port'
+    'port\:info:Show process info on port'
+  )
+
+  # Docker commands
+  local -a docker_commands=(
+    'docker\:status:Check Docker status'
+    'docker\:up:Start Docker containers'
+    'docker\:down:Stop Docker containers'
+    'docker\:logs:View Docker logs'
+  )
+
+  # Dependency commands
+  local -a deps_commands=(
+    'deps\:outdated:Check for outdated packages'
+    'deps\:update:Update dependencies'
+    'deps\:audit:Run security audit'
+  )
+
+  # Cleanup commands
+  local -a cleanup_commands=(
+    'clean:Remove build artifacts'
+    'fresh:Clean and reinstall dependencies'
+  )
+
+  # Failure-aware commands
+  local -a failure_commands=(
+    'run:Run command with failure awareness'
+    'validate:Validate command before running'
+    'retry:Retry failed command'
+  )
+
+  # Utility commands
+  local -a util_commands=(
+    'shortcuts:Show shortcuts file'
+    'aliases:Show available aliases'
+  )
+
+  # Help commands
+  local -a help_commands=(
+    'help:Show help'
+    'version:Show version'
+  )
+
+  # Combine all commands
+  local -a all_commands=(
+    $main_commands
+    $daemon_commands
+    $log_commands
+    $perf_commands
+    $status_commands
+    $config_commands
+    $angular_commands
+    $info_commands
+    $git_commands
+    $env_commands
+    $port_commands
+    $docker_commands
+    $deps_commands
+    $cleanup_commands
+    $failure_commands
+    $util_commands
+    $help_commands
+  )
+
+  # Global flags
+  local -a global_flags=(
+    '(-h --help)'{-h,--help}'[Show help]'
+    '(-v --verbose)'{-v,--verbose}'[Enable debug logging]'
+    '(-q --quiet)'{-q,--quiet}'[Minimal output (errors only)]'
+    '--version[Show version]'
+  )
+
+  _arguments -C \
+    $global_flags \
+    '1: :->command' \
+    '*::arg:->args'
+
+  case $state in
+    command)
+      _describe -t commands 'prodrun command' all_commands
+      ;;
+
+    args)
+      case $words[1] in
+        logs)
+          _arguments \
+            '1:log type:(app error all)' \
+            '2:number of lines:'
+          ;;
+
+        daemon)
+          local -a daemon_actions=(
+            'start:Start daemon'
+            'stop:Stop daemon'
+            'restart:Restart daemon'
+          )
+          _describe -t actions 'daemon action' daemon_actions
+          ;;
+
+        log:filter)
+          _arguments \
+            '1:filter type:(level message timestamp)' \
+            '2:filter value:' \
+            '3:log file:_files'
+          ;;
+
+        log:follow)
+          _arguments \
+            '1:pattern:' \
+            '2:log file:_files'
+          ;;
+
+        perf:start|perf:end)
+          _arguments '1:timer name:'
+          ;;
+
+        metrics:track)
+          _arguments \
+            '1:metric name:' \
+            '2:value:'
+          ;;
+
+        ng:serve)
+          # Complete Angular apps from angular.json if it exists
+          if [[ -f "angular.json" ]]; then
+            local -a apps
+            apps=(${(f)"$(jq -r '.projects | keys[]' angular.json 2>/dev/null)"})
+            _arguments \
+              '1:app name:($apps)' \
+              '2:port number:'
+          else
+            _arguments \
+              '1:app name:' \
+              '2:port number:'
+          fi
+          ;;
+
+        ng:build|ng:test|ng:lint)
+          # Complete Angular apps from angular.json
+          if [[ -f "angular.json" ]]; then
+            local -a apps
+            apps=(${(f)"$(jq -r '.projects | keys[]' angular.json 2>/dev/null)"})
+            _describe -t apps 'Angular app' apps
+          fi
+          ;;
+
+        ng:generate)
+          local -a ng_types=(
+            'component:Angular component'
+            'service:Angular service'
+            'module:Angular module'
+            'directive:Angular directive'
+            'pipe:Angular pipe'
+            'guard:Angular guard'
+            'class:TypeScript class'
+            'interface:TypeScript interface'
+            'enum:TypeScript enum'
+          )
+          _arguments \
+            '1:type:->ng_type' \
+            '2:name:'
+
+          case $state in
+            ng_type)
+              _describe -t types 'Angular type' ng_types
+              ;;
+          esac
+          ;;
+
+        port:check|port:kill|port:info)
+          # Complete common ports or running ports
+          local -a common_ports=(
+            '3000:Common Node.js port'
+            '3001:Alternative Node.js port'
+            '4200:Angular default port'
+            '5173:Vite default port'
+            '8000:Common Python port'
+            '8080:Common Java/Spring port'
+          )
+
+          # Get currently used ports
+          local -a used_ports
+          if command -v lsof >/dev/null 2>&1; then
+            used_ports=(${(f)"$(lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null | awk 'NR>1 {print $9}' | cut -d: -f2 | sort -u)"})
+          fi
+
+          if [[ ${#used_ports[@]} -gt 0 ]]; then
+            _describe -t ports 'port number' common_ports used_ports
+          else
+            _describe -t ports 'port number' common_ports
+          fi
+          ;;
+
+        run)
+          _arguments \
+            '1:command:' \
+            '--retry=[Number of retries]:retries:(1 2 3 4 5)' \
+            '*:args:'
+          ;;
+
+        retry)
+          _arguments \
+            '1:command:' \
+            '2:max retries:(1 2 3 4 5)'
+          ;;
+
+        validate)
+          _arguments '*:command:'
+          ;;
+      esac
+      ;;
+  esac
+}
+
+_prodrun "$@"

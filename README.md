@@ -405,5 +405,29 @@ prodrun version
 
 ---
 
-**Version:** 1.0.0 | **License:** MIT
-# Test sync
+**Version:** 1.1.0 | **License:** MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues or pull requests.
+
+## Support
+
+For issues and feature requests, please use the [GitHub Issues](https://github.com/catstackdev/personal-shell-library--prodrun/issues) page.
+
+## Changelog
+
+### v1.1.0 (2026-01-13)
+- Added failure-aware execution with smart retry
+- Added automatic Angular project detection
+- Added intelligent status tracking for foreground processes
+- Enhanced error detection with suggested fixes
+- Improved project-aware commands
+
+### v1.0.0 (2026-01-10)
+- Initial release
+- Auto-detection for package managers and project types
+- Angular CLI integration
+- Real-world utilities (port, docker, git, env)
+- Enhanced logging system
+- Performance tracking
